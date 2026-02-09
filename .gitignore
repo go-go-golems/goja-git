@@ -1,0 +1,30 @@
+# Binaries
+goja-git
+*.exe
+*.bin
+
+# Test files
+test-*.go
+test-*.js
+
+# Go build artifacts
+*.test
+*.out
+coverage/
+*.cover
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
