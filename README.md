@@ -14,6 +14,7 @@ This project provides a JavaScript API for Git operations that can be executed i
 - **History**: View commit logs and resolve references
 - **Tags**: Create and list tags
 - **Diff**: Compare changes between commits
+- **Filter-Repo**: Rewrite repository history to extract subdirectories
 
 ## Installation
 
@@ -166,6 +167,31 @@ const branchHash = repo.refs.resolve({
 });
 ```
 
+#### Filter-Repo Operations
+
+```javascript
+// Extract a subdirectory as a new repository
+const filtered = repo.filterRepo({
+  OutDir: "/path/to/output",
+  Ref: "HEAD",
+  Path: "cmd/a",           // Keep only this path
+  ToPrefix: "cmd/b",        // Rename to this prefix (empty = root)
+  PruneEmpty: true,         // Remove commits that don't touch the path
+  PruneMerges: false,       // Keep merge commits even if empty
+  OutBranch: "main"         // Branch name in output repo
+});
+
+console.log("New tip:", filtered.newTip);
+console.log("Rewritten commits:", filtered.rewrittenCommits);
+console.log("Pruned commits:", filtered.prunedCommits);
+```
+
+**Use Cases:**
+- Extract a subdirectory from a monorepo into its own repository
+- Rename directory paths throughout history
+- Clean up history by removing commits unrelated to a specific path
+- Split a large repository into smaller focused repositories
+
 ## Example Scripts
 
 The `scripts/` directory contains several example scripts demonstrating different Git operations:
@@ -175,6 +201,16 @@ The `scripts/` directory contains several example scripts demonstrating differen
 3. **03-log-and-history.js** - View commit history and resolve references
 4. **04-tags-and-diff.js** - Tag management and diff operations
 5. **05-complete-workflow.js** - Complete workflow demonstration
+
+### Filter-Repo Examples
+
+The `scripts-filterrepo/` directory contains comprehensive filter-repo tests:
+
+1. **01-basic-filter-rename.js** - Basic path filtering and renaming
+2. **02-extract-to-root.js** - Extract subdirectory as repository root
+3. **03-prune-empty.js** - Prune commits without target path
+4. **04-deep-paths.js** - Filter deeply nested directory structures
+5. **05-complete-workflow.js** - Extract project from monorepo
 
 ### Running Examples
 
@@ -231,8 +267,11 @@ try {
 ### Components
 
 - **gitmodule.go** - Core Git wrapper module exposing JavaScript API
+- **filterrepo/filterrepo.go** - Git filter-repo implementation
+- **filterrepo/filterrepo_test.go** - Comprehensive Go tests
 - **main.go** - CLI runner that executes JavaScript files
 - **scripts/** - Example JavaScript scripts
+- **scripts-filterrepo/** - Filter-repo test scripts
 
 ### Technology Stack
 
@@ -242,7 +281,36 @@ try {
 
 ## Testing
 
+### Basic Git Operations
+
 A test repository is included in `test-repo/` for running the example scripts. The scripts are designed to be run sequentially to demonstrate a complete Git workflow.
+
+### Filter-Repo Tests
+
+**Go Tests:**
+```bash
+go test -v ./filterrepo/
+```
+
+The Go test suite includes:
+- Basic path filtering and renaming
+- Empty commit pruning
+- Root extraction
+- Multiple commit history rewriting
+- Topological commit ordering
+
+**JavaScript Tests:**
+```bash
+# Setup test files
+./scripts-filterrepo/setup-test-files.sh
+
+# Run individual tests
+./goja-git scripts-filterrepo/01-basic-filter-rename.js
+./goja-git scripts-filterrepo/02-extract-to-root.js
+./goja-git scripts-filterrepo/03-prune-empty.js
+./goja-git scripts-filterrepo/04-deep-paths.js
+./goja-git scripts-filterrepo/05-complete-workflow.js
+```
 
 ## Limitations
 
@@ -250,6 +318,7 @@ A test repository is included in `test-repo/` for running the example scripts. T
 - Diff operations return file names only, not full patch content
 - No merge or rebase operations yet
 - Synchronous API only (no Promise support)
+- Filter-repo creates bare repositories (can be cloned to get working trees)
 
 ## Future Enhancements
 

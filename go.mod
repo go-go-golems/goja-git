@@ -1,4 +1,4 @@
-module github.com/example/goja-git
+module github.com/go-go-golems/goja-git
 
 go 1.25.5
 

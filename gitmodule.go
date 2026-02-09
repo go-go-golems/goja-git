@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dop251/goja"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+
+	"github.com/go-go-golems/goja-git/filterrepo"
 )
 
 // GitModule provides the top-level git object for JS
@@ -74,6 +78,17 @@ type TagOptions struct {
 	Name    string
 	Message string
 	Ref     string
+}
+
+// FilterRepoOptions for repo.filterRepo()
+type FilterRepoOptions struct {
+	OutDir      string
+	Ref         string
+	Path        string
+	ToPrefix    string
+	PruneEmpty  *bool
+	PruneMerges *bool
+	OutBranch   string
 }
 
 // RepoHandle represents a git repository exposed to JS
@@ -175,6 +190,9 @@ func (m *GitModule) newRepoValue(dir string, repo *git.Repository) goja.Value {
 	refsObj := m.rt.NewObject()
 	_ = refsObj.Set("resolve", h.RefsResolve)
 	_ = o.Set("refs", refsObj)
+
+	// Filter-repo operation
+	_ = o.Set("filterRepo", h.FilterRepo)
 
 	return o
 }
@@ -580,4 +598,106 @@ func (h *RepoHandle) mustExport(v goja.Value, dst any) {
 	if err := h.rt.ExportTo(v, dst); err != nil {
 		panic(h.rt.NewGoError(err))
 	}
+}
+
+// FilterRepo rewrites repository history, keeping only a specific path and optionally renaming it
+func (h *RepoHandle) FilterRepo(call goja.FunctionCall) goja.Value {
+	var opts FilterRepoOptions
+	h.mustExport(call.Argument(0), &opts)
+
+	// Set defaults
+	if opts.Ref == "" {
+		opts.Ref = "HEAD"
+	}
+	pruneEmpty := true
+	if opts.PruneEmpty != nil {
+		pruneEmpty = *opts.PruneEmpty
+	}
+	pruneMerges := false
+	if opts.PruneMerges != nil {
+		pruneMerges = *opts.PruneMerges
+	}
+
+	// Resolve the start commit
+	start, err := h.repo.ResolveRevision(plumbing.Revision(opts.Ref))
+	if err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("failed to resolve ref %q: %w", opts.Ref, err)))
+	}
+
+	// Create a bare output repository
+	outRepo, err := git.PlainInit(opts.OutDir, true)
+	if err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("failed to init output repo: %w", err)))
+	}
+
+	// Create rewriter and execute
+	rw, err := filterrepo.NewRewriter(h.repo.Storer, outRepo.Storer, filterrepo.Options{
+		Start:       *start,
+		KeepPrefix:  opts.Path,
+		NewPrefix:   opts.ToPrefix,
+		PruneEmpty:  pruneEmpty,
+		PruneMerges: pruneMerges,
+	})
+	if err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("failed to create rewriter: %w", err)))
+	}
+
+	res, err := rw.Rewrite(context.Background())
+	if err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("rewrite failed: %w", err)))
+	}
+
+	// Determine output branch name
+	outBranch := opts.OutBranch
+	if outBranch == "" {
+		// If HEAD is symbolic to a branch, keep that name; else default "main"
+		if head, err := h.repo.Head(); err == nil && head.Name().IsBranch() {
+			outBranch = head.Name().Short()
+		} else {
+			outBranch = "main"
+		}
+
+		// If user passed a plain branch-ish ref, prefer it
+		if looksLikeBranchName(opts.Ref) {
+			outBranch = opts.Ref
+		}
+	}
+
+	// Set the branch reference in output repo
+	branchRef := plumbing.NewHashReference(plumbing.NewBranchReferenceName(outBranch), res.NewTip)
+	if err := outRepo.Storer.SetReference(branchRef); err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("failed to set branch ref: %w", err)))
+	}
+	if err := outRepo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, branchRef.Name())); err != nil {
+		panic(h.rt.NewGoError(fmt.Errorf("failed to set HEAD: %w", err)))
+	}
+
+	// Create GitModule to use newRepoValue
+	m := &GitModule{rt: h.rt}
+	outVal := m.newRepoValue(opts.OutDir, outRepo).ToObject(h.rt)
+
+	// Attach stats
+	_ = outVal.Set("newTip", res.NewTip.String())
+	_ = outVal.Set("rewrittenCommits", res.RewrittenCommits)
+	_ = outVal.Set("prunedCommits", res.PrunedCommits)
+	_ = outVal.Set("outBranch", outBranch)
+
+	return outVal
+}
+
+// looksLikeBranchName checks if a ref looks like a branch name (not a revspec or hash)
+func looksLikeBranchName(ref string) bool {
+	if ref == "" {
+		return false
+	}
+	// Avoid revspec operators
+	if strings.ContainsAny(ref, "~^:{}") {
+		return false
+	}
+	// Avoid raw hashes (40 hex chars)
+	if len(ref) >= 40 && plumbing.NewHash(ref) != plumbing.ZeroHash {
+		return false
+	}
+	// Looks like a branch name
+	return true
 }
