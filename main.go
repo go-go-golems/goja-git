@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
+	"github.com/go-go-golems/goja-git/pkg/gitjs"
 )
 
 func main() {
@@ -21,9 +22,9 @@ func main() {
 	}
 
 	rt := goja.New()
-	
+
 	// Install the git module
-	InstallGit(rt)
+	gitjs.InstallGit(rt)
 
 	// Add a simple console.log implementation
 	console := rt.NewObject()
@@ -47,7 +48,7 @@ func main() {
 			return __internal_parse(str);
 		};
 	`)
-	
+
 	rt.Set("__internal_stringify", func(call goja.FunctionCall) goja.Value {
 		obj := call.Argument(0).Export()
 		indent := 0
@@ -56,7 +57,7 @@ func main() {
 				indent = int(num)
 			}
 		}
-		
+
 		result := stringify(obj, indent, 0)
 		return rt.ToValue(result)
 	})

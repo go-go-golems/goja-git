@@ -1,4 +1,4 @@
-package main
+package gitjs
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/require"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -98,15 +99,29 @@ type RepoHandle struct {
 	repo *git.Repository
 }
 
-// InstallGit installs the git module into the goja runtime
-func InstallGit(rt *goja.Runtime) {
+// NewGitObject creates the top-level JavaScript git API object.
+func NewGitObject(rt *goja.Runtime) *goja.Object {
 	m := &GitModule{rt: rt}
 
 	gitObj := rt.NewObject()
 	_ = gitObj.Set("open", m.Open)
 	_ = gitObj.Set("init", m.Init)
+	return gitObj
+}
 
-	rt.Set("git", gitObj)
+// NewLoader returns a CommonJS native module loader for require("git").
+func NewLoader() require.ModuleLoader {
+	return func(rt *goja.Runtime, moduleObj *goja.Object) {
+		exports := moduleObj.Get("exports").(*goja.Object)
+		gitObj := NewGitObject(rt)
+		_ = exports.Set("open", gitObj.Get("open"))
+		_ = exports.Set("init", gitObj.Get("init"))
+	}
+}
+
+// InstallGit installs the git module as a global object into the goja runtime.
+func InstallGit(rt *goja.Runtime) {
+	_ = rt.Set("git", NewGitObject(rt))
 }
 
 // Open opens an existing git repository
