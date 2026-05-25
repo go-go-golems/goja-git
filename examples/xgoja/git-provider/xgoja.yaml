@@ -1,0 +1,21 @@
+name: git-provider
+target:
+  kind: xgoja
+  output: dist/git-provider
+packages:
+  - id: goja-git
+    import: github.com/go-go-golems/goja-git/pkg/provider
+    version: v0.0.0
+    replace: ../../..
+runtimes:
+  main:
+    modules:
+      - package: goja-git
+        name: git
+        as: git
+        config:
+          allowWrite: true
+commands:
+  run:
+    enabled: true
+    runtime: main
