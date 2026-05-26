@@ -213,6 +213,8 @@ func (c *ObjectCopier) CopyTree(hash plumbing.Hash) error {
 			if err := c.CopyBlob(e.Hash); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("unsupported tree entry mode %q for %s", e.Mode, e.Name)
 		}
 	}
 
