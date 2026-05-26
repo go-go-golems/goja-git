@@ -1,6 +1,6 @@
 module github.com/go-go-golems/goja-git
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/dop251/goja v0.0.0-20251103141225-af2ceb9156d7
