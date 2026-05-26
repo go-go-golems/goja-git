@@ -130,7 +130,7 @@ func (m *GitModule) Open(call goja.FunctionCall) goja.Value {
 	m.mustExport(call.Argument(0), &opts)
 
 	if opts.Dir == "" {
-		panic(m.rt.NewGoError(fmt.Errorf("Dir is required")))
+		panic(m.rt.NewGoError(fmt.Errorf("dir is required")))
 	}
 
 	repo, err := git.PlainOpen(opts.Dir)
@@ -146,7 +146,7 @@ func (m *GitModule) Init(call goja.FunctionCall) goja.Value {
 	m.mustExport(call.Argument(0), &opts)
 
 	if opts.Dir == "" {
-		panic(m.rt.NewGoError(fmt.Errorf("Dir is required")))
+		panic(m.rt.NewGoError(fmt.Errorf("dir is required")))
 	}
 
 	repo, err := git.PlainInit(opts.Dir, opts.Bare)
@@ -266,7 +266,7 @@ func (h *RepoHandle) Commit(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Message == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Message is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("message is required")))
 	}
 
 	wt, err := h.repo.Worktree()
@@ -351,7 +351,7 @@ func (h *RepoHandle) Checkout(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Ref == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Ref is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("ref is required")))
 	}
 
 	wt, err := h.repo.Worktree()
@@ -469,7 +469,7 @@ func (h *RepoHandle) BranchCreate(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Name == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Name is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("name is required")))
 	}
 
 	startPoint := opts.StartPoint
@@ -528,7 +528,7 @@ func (h *RepoHandle) TagCreate(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Name == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Name is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("name is required")))
 	}
 
 	targetRef := opts.Ref
@@ -559,7 +559,7 @@ func (h *RepoHandle) RefsResolve(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Ref == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Ref is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("ref is required")))
 	}
 
 	hash, err := h.resolveRef(opts.Ref)
