@@ -1,4 +1,4 @@
-package main
+package gitjs
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dop251/goja"
+	"github.com/dop251/goja_nodejs/require"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -98,15 +99,29 @@ type RepoHandle struct {
 	repo *git.Repository
 }
 
-// InstallGit installs the git module into the goja runtime
-func InstallGit(rt *goja.Runtime) {
+// NewGitObject creates the top-level JavaScript git API object.
+func NewGitObject(rt *goja.Runtime) *goja.Object {
 	m := &GitModule{rt: rt}
 
 	gitObj := rt.NewObject()
 	_ = gitObj.Set("open", m.Open)
 	_ = gitObj.Set("init", m.Init)
+	return gitObj
+}
 
-	rt.Set("git", gitObj)
+// NewLoader returns a CommonJS native module loader for require("git").
+func NewLoader() require.ModuleLoader {
+	return func(rt *goja.Runtime, moduleObj *goja.Object) {
+		exports := moduleObj.Get("exports").(*goja.Object)
+		gitObj := NewGitObject(rt)
+		_ = exports.Set("open", gitObj.Get("open"))
+		_ = exports.Set("init", gitObj.Get("init"))
+	}
+}
+
+// InstallGit installs the git module as a global object into the goja runtime.
+func InstallGit(rt *goja.Runtime) {
+	_ = rt.Set("git", NewGitObject(rt))
 }
 
 // Open opens an existing git repository
@@ -115,7 +130,7 @@ func (m *GitModule) Open(call goja.FunctionCall) goja.Value {
 	m.mustExport(call.Argument(0), &opts)
 
 	if opts.Dir == "" {
-		panic(m.rt.NewGoError(fmt.Errorf("Dir is required")))
+		panic(m.rt.NewGoError(fmt.Errorf("dir is required")))
 	}
 
 	repo, err := git.PlainOpen(opts.Dir)
@@ -131,7 +146,7 @@ func (m *GitModule) Init(call goja.FunctionCall) goja.Value {
 	m.mustExport(call.Argument(0), &opts)
 
 	if opts.Dir == "" {
-		panic(m.rt.NewGoError(fmt.Errorf("Dir is required")))
+		panic(m.rt.NewGoError(fmt.Errorf("dir is required")))
 	}
 
 	repo, err := git.PlainInit(opts.Dir, opts.Bare)
@@ -251,7 +266,7 @@ func (h *RepoHandle) Commit(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Message == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Message is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("message is required")))
 	}
 
 	wt, err := h.repo.Worktree()
@@ -336,7 +351,7 @@ func (h *RepoHandle) Checkout(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Ref == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Ref is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("ref is required")))
 	}
 
 	wt, err := h.repo.Worktree()
@@ -454,7 +469,7 @@ func (h *RepoHandle) BranchCreate(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Name == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Name is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("name is required")))
 	}
 
 	startPoint := opts.StartPoint
@@ -513,7 +528,7 @@ func (h *RepoHandle) TagCreate(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Name == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Name is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("name is required")))
 	}
 
 	targetRef := opts.Ref
@@ -544,7 +559,7 @@ func (h *RepoHandle) RefsResolve(call goja.FunctionCall) goja.Value {
 	h.mustExport(call.Argument(0), &opts)
 
 	if opts.Ref == "" {
-		panic(h.rt.NewGoError(fmt.Errorf("Ref is required")))
+		panic(h.rt.NewGoError(fmt.Errorf("ref is required")))
 	}
 
 	hash, err := h.resolveRef(opts.Ref)

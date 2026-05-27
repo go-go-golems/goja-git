@@ -205,12 +205,16 @@ func (c *ObjectCopier) CopyTree(hash plumbing.Hash) error {
 			if err := c.CopyTree(e.Hash); err != nil {
 				return err
 			}
+		case filemode.Empty:
+			// Empty entries do not reference an object that needs copying.
 		case filemode.Submodule:
 			// gitlink entry: hash points at a commit in another repo; do not copy objects.
-		default:
+		case filemode.Regular, filemode.Deprecated, filemode.Executable, filemode.Symlink:
 			if err := c.CopyBlob(e.Hash); err != nil {
 				return err
 			}
+		default:
+			return fmt.Errorf("unsupported tree entry mode %q for %s", e.Mode, e.Name)
 		}
 	}
 
@@ -255,8 +259,9 @@ func (b TreeBuilder) WriteTree(entries []object.TreeEntry) (plumbing.Hash, error
 // leading to `leafTreeHash`.
 //
 // Example: prefix="cmd/b" and leafTreeHash=<hash of subtree>
-//   root:  {"cmd" -> tree1}
-//   tree1: {"b"   -> leafTreeHash}
+//
+//	root:  {"cmd" -> tree1}
+//	tree1: {"b"   -> leafTreeHash}
 func (b TreeBuilder) BuildPrefixedRoot(prefix string, leafTreeHash plumbing.Hash) (plumbing.Hash, error) {
 	prefix = normPath(prefix)
 	if prefix == "" {
@@ -447,10 +452,11 @@ func (r *Rewriter) emptyTreeHash() (plumbing.Hash, error) {
 	return h, nil
 }
 
-func (r *Rewriter) remapParents(oldParents []plumbing.Hash) (newParents []plumbing.Hash, firstParent rewriteInfo) {
+func (r *Rewriter) remapParents(oldParents []plumbing.Hash) ([]plumbing.Hash, rewriteInfo) {
 	seen := map[plumbing.Hash]bool{}
 	out := make([]plumbing.Hash, 0, len(oldParents))
 
+	var firstParent rewriteInfo
 	var firstSet bool
 	for _, p := range oldParents {
 		pi, ok := r.byOld[p]

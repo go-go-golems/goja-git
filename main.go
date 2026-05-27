@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/dop251/goja"
+	"github.com/go-go-golems/goja-git/pkg/gitjs"
 )
 
 func main() {
@@ -21,34 +22,46 @@ func main() {
 	}
 
 	rt := goja.New()
-	
+
 	// Install the git module
-	InstallGit(rt)
+	gitjs.InstallGit(rt)
 
 	// Add a simple console.log implementation
 	console := rt.NewObject()
-	console.Set("log", func(call goja.FunctionCall) goja.Value {
+	if err := console.Set("log", func(call goja.FunctionCall) goja.Value {
 		args := make([]interface{}, len(call.Arguments))
 		for i, arg := range call.Arguments {
 			args[i] = arg.Export()
 		}
 		fmt.Println(args...)
 		return goja.Undefined()
-	})
-	rt.Set("console", console)
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "Error installing console.log: %v\n", err)
+		os.Exit(1)
+	}
+	if err := rt.Set("console", console); err != nil {
+		fmt.Fprintf(os.Stderr, "Error installing console: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Add JSON support
-	rt.Set("JSON", rt.NewObject())
-	rt.RunString(`
+	if err := rt.Set("JSON", rt.NewObject()); err != nil {
+		fmt.Fprintf(os.Stderr, "Error installing JSON object: %v\n", err)
+		os.Exit(1)
+	}
+	if _, err := rt.RunString(`
 		JSON.stringify = function(obj, replacer, space) {
 			return __internal_stringify(obj, space || 0);
 		};
 		JSON.parse = function(str) {
 			return __internal_parse(str);
 		};
-	`)
-	
-	rt.Set("__internal_stringify", func(call goja.FunctionCall) goja.Value {
+	`); err != nil {
+		fmt.Fprintf(os.Stderr, "Error installing JSON helpers: %v\n", err)
+		os.Exit(1)
+	}
+
+	if err := rt.Set("__internal_stringify", func(call goja.FunctionCall) goja.Value {
 		obj := call.Argument(0).Export()
 		indent := 0
 		if len(call.Arguments) > 1 {
@@ -56,10 +69,13 @@ func main() {
 				indent = int(num)
 			}
 		}
-		
+
 		result := stringify(obj, indent, 0)
 		return rt.ToValue(result)
-	})
+	}); err != nil {
+		fmt.Fprintf(os.Stderr, "Error installing stringify helper: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Run the script
 	_, err = rt.RunString(string(scriptBytes))
