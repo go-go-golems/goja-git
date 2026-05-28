@@ -1,0 +1,3 @@
+package main
+
+//go:generate go tool logcopter-gen -area-prefix go-go-golems.goja-git -strip-prefix github.com/go-go-golems/goja-git . ./pkg/...
