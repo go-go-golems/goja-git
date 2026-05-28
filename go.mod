@@ -6,7 +6,7 @@ require (
 	github.com/dop251/goja v0.0.0-20251103141225-af2ceb9156d7
 	github.com/dop251/goja_nodejs v0.0.0-20250409162600-f7acab6894b0
 	github.com/go-git/go-git/v5 v5.16.5
-	github.com/go-go-golems/go-go-goja v0.6.0
+	github.com/go-go-golems/go-go-goja v0.7.0
 	github.com/go-go-golems/logcopter v0.1.0
 )
 
