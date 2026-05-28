@@ -1,5 +1,5 @@
 version: 2
-project_name: XXX
+project_name: goja-git
 
 before:
   hooks:
@@ -8,7 +8,7 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
 builds:
-  - id: XXX-linux
+  - id: goja-git-linux
     env:
       - CGO_ENABLED=1
       - CC_linux_amd64=gcc
@@ -17,8 +17,8 @@ builds:
       - CXX_linux_arm64=aarch64-linux-gnu-g++
       - 'CC={{ index .Env (print "CC_" .Os "_" .Arch) }}'
       - 'CXX={{ index .Env (print "CXX_" .Os "_" .Arch) }}'
-    main: ./cmd/XXX
-    binary: XXX
+    main: .
+    binary: goja-git
     goos:
       - linux
 # I am not able to test windows at the time
@@ -26,11 +26,11 @@ builds:
     goarch:
       - amd64
       - arm64
-  - id: XXX-darwin
+  - id: goja-git-darwin
     env:
       - CGO_ENABLED=1
-    main: ./cmd/XXX
-    binary: XXX
+    main: .
+    binary: goja-git
     goos:
       - darwin
     goarch:
@@ -53,9 +53,9 @@ signs:
     args: [ "--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}" ]
 
 brews:
-  - name: XXX
-    description: "XXX is a tool"
-    homepage: "https://github.com/go-go-golems/XXX"
+  - name: goja-git
+    description: "Run JavaScript scripts with Git bindings"
+    homepage: "https://github.com/go-go-golems/goja-git"
     repository:
       owner: go-go-golems
       name: homebrew-go-go-go
@@ -70,7 +70,7 @@ nfpms:
     maintainer: Manuel Odendahl <wesen@ruinwesen.com>
 
     description: |-
-      XXX is a tool
+      goja-git runs JavaScript scripts with Git bindings
 
     license: MIT
 
