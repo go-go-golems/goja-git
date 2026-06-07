@@ -9,7 +9,7 @@ import (
 )
 
 func TestRegisterProvider(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -23,7 +23,7 @@ func TestRegisterProvider(t *testing.T) {
 }
 
 func TestProviderRequiresAllowWrite(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -31,16 +31,16 @@ func TestProviderRequiresAllowWrite(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing module")
 	}
-	if _, err := mod.New(providerapi.ModuleContext{}); err == nil {
+	if _, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{}); err == nil {
 		t.Fatalf("expected missing allowWrite error")
 	}
-	if _, err := mod.New(providerapi.ModuleContext{Config: json.RawMessage(`{"allowWrite": false}`)}); err == nil {
+	if _, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{Config: json.RawMessage(`{"allowWrite": false}`)}); err == nil {
 		t.Fatalf("expected allowWrite=false error")
 	}
 }
 
 func TestModuleLoaderInstallsGitExports(t *testing.T) {
-	registry := providerapi.NewRegistry()
+	registry := providerapi.NewProviderRegistry()
 	if err := Register(registry); err != nil {
 		t.Fatalf("register provider: %v", err)
 	}
@@ -48,7 +48,7 @@ func TestModuleLoaderInstallsGitExports(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing module")
 	}
-	loader, err := mod.New(providerapi.ModuleContext{
+	loader, err := mod.NewModuleFactory(providerapi.ModuleSetupContext{
 		Name:   ModuleName,
 		As:     ModuleName,
 		Config: json.RawMessage(`{"allowWrite": true}`),
