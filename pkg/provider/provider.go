@@ -31,13 +31,13 @@ var configSchema = json.RawMessage(`{
   "additionalProperties": false
 }`)
 
-func Register(registry *providerapi.Registry) error {
+func Register(registry *providerapi.ProviderRegistry) error {
 	return registry.Package(PackageID, providerapi.Module{
 		Name:         ModuleName,
 		DefaultAs:    ModuleName,
 		Description:  "Git repository automation backed by go-git and exposed as require(\"git\").",
 		ConfigSchema: configSchema,
-		New: func(ctx providerapi.ModuleContext) (require.ModuleLoader, error) {
+		NewModuleFactory: func(ctx providerapi.ModuleSetupContext) (require.ModuleLoader, error) {
 			cfg, err := decodeConfig(ctx.Config)
 			if err != nil {
 				return nil, fmt.Errorf("goja-git provider config: %w", err)

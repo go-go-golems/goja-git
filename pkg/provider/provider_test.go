@@ -31,10 +31,10 @@ func TestProviderRequiresAllowWrite(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing module")
 	}
-	if _, err := mod.New(providerapi.ModuleContext{}); err == nil {
+	if _, err := mod.New(providerapi.ModuleSetupContext{}); err == nil {
 		t.Fatalf("expected missing allowWrite error")
 	}
-	if _, err := mod.New(providerapi.ModuleContext{Config: json.RawMessage(`{"allowWrite": false}`)}); err == nil {
+	if _, err := mod.New(providerapi.ModuleSetupContext{Config: json.RawMessage(`{"allowWrite": false}`)}); err == nil {
 		t.Fatalf("expected allowWrite=false error")
 	}
 }
@@ -48,7 +48,7 @@ func TestModuleLoaderInstallsGitExports(t *testing.T) {
 	if !ok {
 		t.Fatalf("missing module")
 	}
-	loader, err := mod.New(providerapi.ModuleContext{
+	loader, err := mod.New(providerapi.ModuleSetupContext{
 		Name:   ModuleName,
 		As:     ModuleName,
 		Config: json.RawMessage(`{"allowWrite": true}`),
